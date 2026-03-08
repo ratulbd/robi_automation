@@ -237,10 +237,21 @@ def generate_report(filepath: str) -> bytes:
     wb = Workbook()
     wb.remove(wb.active)
 
+    # Note: raw_refs (Named Ranges) are defined in _build_raw_sheet
+    # We call it first to get the references, but we will move it to the end later
     raw_refs = _build_raw_sheet(wb, df_str)
     _build_summary_sheet(wb, df, df_uniq, date_col, raw_refs)
     _build_mttr_sheet(wb, df_uniq, raw_refs)
-    _build_charts_sheet(wb, df, df_uniq)
+
+    # Move Raw Data to the end
+    raw_sheet = wb['Raw Data']
+    # Removing and re-adding is a simple way to move it to the end in openpyxl
+    # But better to just reorder the sheet list if possible, or build it logically.
+    # Actually, openpyxl appends by default. If I want it last, I should add Summary and MTTR FIRST.
+    # But they need the Named Ranges from Raw Data.
+    # I will move the sheet index.
+    idx = len(wb.sheetnames) - 1
+    wb._sheets = [wb._sheets[1], wb._sheets[2], wb._sheets[0]]
 
     buf = io.BytesIO()
     wb.save(buf)
