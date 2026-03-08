@@ -1,0 +1,197 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard — Report Automation{% endblock %}
+{% block content %}
+<div class="page-container">
+    <div class="page-header">
+        <h1 class="page-title">📤 Upload &amp; Generate Report</h1>
+        <p class="page-subtitle">Upload a Daily Activity Excel file to automatically generate the MTTR &amp; Summary
+            report.</p>
+    </div>
+
+    <div class="upload-section">
+        <div class="upload-card" id="dropZone">
+            <div class="upload-icon" id="uploadIcon">📂</div>
+            <p class="upload-text" id="uploadText">Drag &amp; drop your Excel file here</p>
+            <p class="upload-sub">or</p>
+            <button type="button" class="btn-primary" id="browseBtn">Browse Files</button>
+            <input type="file" id="fileInput" accept=".xlsx,.xls" style="display:none">
+            <p class="upload-hint">Supported: .xlsx, .xls &nbsp;|&nbsp; Max size: 50 MB</p>
+        </div>
+
+        <div class="file-preview hidden" id="filePreview">
+            <div class="file-info">
+                <span class="file-icon">📄</span>
+                <div>
+                    <p class="file-name" id="fileName"></p>
+                    <p class="file-size" id="fileSize"></p>
+                </div>
+                <button class="btn-icon" id="clearFile" title="Remove">✕</button>
+            </div>
+            <div class="progress-wrap hidden" id="progressWrap">
+                <div class="progress-bar" id="progressBar"></div>
+            </div>
+            <button class="btn-primary btn-full" id="generateBtn" style="margin-top:1rem">
+                ⚡ Generate Report
+            </button>
+        </div>
+
+        <div class="result-card hidden" id="resultCard">
+            <div class="result-icon">✅</div>
+            <p class="result-title">Report Generated!</p>
+            <p class="result-sub">Your Excel report with MTTR, Summary &amp; Charts is ready.</p>
+            <a id="downloadLink" class="btn-success btn-full">⬇️ Download Report</a>
+            <button class="btn-ghost btn-full" id="resetBtn" style="margin-top:0.5rem">Upload Another File</button>
+        </div>
+
+        <div class="error-card hidden" id="errorCard">
+            <div class="error-icon">❌</div>
+            <p class="result-title" id="errorTitle">Processing Failed</p>
+            <p class="result-sub" id="errorMsg"></p>
+            <button class="btn-ghost btn-full" id="errorResetBtn" style="margin-top:0.5rem">Try Again</button>
+        </div>
+    </div>
+
+    <div class="info-section">
+        <div class="info-grid">
+            <div class="info-card">
+                <div class="info-icon">📊</div>
+                <h3>MTTR Sheet</h3>
+                <p>Average E2E MTTR by Action Type and Cluster for P1, P2 &amp; P3 priority tickets</p>
+            </div>
+            <div class="info-card">
+                <div class="info-icon">📋</div>
+                <h3>Summary Sheet</h3>
+                <p>Work Status, FO Movement, FTR, Site Recurrence, RC breakdown &amp; MTTR analysis by priority</p>
+            </div>
+            <div class="info-card">
+                <div class="info-icon">📈</div>
+                <h3>Charts Sheet</h3>
+                <p>Visual analytics: Work Status, RC Breakdown, Priority Distribution &amp; Site Recurrence charts</p>
+            </div>
+            <div class="info-card">
+                <div class="info-icon">📁</div>
+                <h3>Raw Data Sheet</h3>
+                <p>Your original uploaded data included for reference with auto-filter enabled</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ── File browse — single trigger only ────────────────────────────────────────
+    const browseBtn = document.getElementById('browseBtn');
+    const fileInput = document.getElementById('fileInput');
+    const dropZone = document.getElementById('dropZone');
+    const filePreview = document.getElementById('filePreview');
+    const fileName = document.getElementById('fileName');
+    const fileSize = document.getElementById('fileSize');
+    const clearFile = document.getElementById('clearFile');
+    const generateBtn = document.getElementById('generateBtn');
+    const progressWrap = document.getElementById('progressWrap');
+    const progressBar = document.getElementById('progressBar');
+    const resultCard = document.getElementById('resultCard');
+    const downloadLink = document.getElementById('downloadLink');
+    const resetBtn = document.getElementById('resetBtn');
+    const errorCard = document.getElementById('errorCard');
+    const errorMsg = document.getElementById('errorMsg');
+    const errorResetBtn = document.getElementById('errorResetBtn');
+
+    browseBtn.addEventListener('click', () => fileInput.click());
+
+    // Drop-zone click (not on the button) also opens file dialog
+    dropZone.addEventListener('click', (e) => {
+        if (e.target === dropZone || e.target.id === 'uploadIcon' || e.target.id === 'uploadText') {
+            fileInput.click();
+        }
+    });
+
+    // Drag & drop
+    dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault(); dropZone.classList.remove('drag-over');
+        const f = e.dataTransfer.files[0];
+        if (f) handleFile(f);
+    });
+
+    fileInput.addEventListener('change', () => { if (fileInput.files[0]) handleFile(fileInput.files[0]); });
+
+    function handleFile(f) {
+        const ext = f.name.split('.').pop().toLowerCase();
+        if (!['xlsx', 'xls'].includes(ext)) { alert('Please upload an Excel file (.xlsx or .xls)'); return; }
+        fileName.textContent = f.name;
+        fileSize.textContent = (f.size / 1024 / 1024).toFixed(2) + ' MB';
+        dropZone.classList.add('hidden');
+        filePreview.classList.remove('hidden');
+        resultCard.classList.add('hidden');
+        errorCard.classList.add('hidden');
+    }
+
+    clearFile.addEventListener('click', () => { resetUI(); });
+
+    function resetUI() {
+        fileInput.value = '';
+        dropZone.classList.remove('hidden');
+        filePreview.classList.add('hidden');
+        resultCard.classList.add('hidden');
+        errorCard.classList.add('hidden');
+        progressWrap.classList.add('hidden');
+        progressBar.style.width = '0%';
+    }
+
+    resetBtn.addEventListener('click', resetUI);
+    errorResetBtn.addEventListener('click', resetUI);
+
+    generateBtn.addEventListener('click', async () => {
+        if (!fileInput.files[0]) return;
+        progressWrap.classList.remove('hidden');
+        generateBtn.disabled = true;
+        generateBtn.textContent = '⏳ Processing…';
+
+        // Animate progress bar
+        let pct = 0;
+        const timer = setInterval(() => {
+            pct = Math.min(pct + Math.random() * 12, 88);
+            progressBar.style.width = pct + '%';
+        }, 300);
+
+        const form = new FormData();
+        form.append('file', fileInput.files[0]);
+
+        try {
+            const res = await fetch('/upload', { method: 'POST', body: form });
+            clearInterval(timer);
+
+            if (res.ok) {
+                progressBar.style.width = '100%';
+                const blob = await res.blob();
+                const url = URL.createObjectURL(blob);
+                const disp = res.headers.get('Content-Disposition') || '';
+                const match = disp.match(/filename="?([^";]+)"?/);
+                const name = match ? match[1] : 'Report.xlsx';
+                downloadLink.href = url;
+                downloadLink.download = name;
+                setTimeout(() => {
+                    filePreview.classList.add('hidden');
+                    resultCard.classList.remove('hidden');
+                }, 400);
+            } else {
+                const data = await res.json();
+                clearInterval(timer);
+                progressBar.style.width = '0%';
+                errorMsg.textContent = data.error || 'An unexpected error occurred.';
+                filePreview.classList.add('hidden');
+                errorCard.classList.remove('hidden');
+            }
+        } catch (err) {
+            clearInterval(timer);
+            errorMsg.textContent = 'Network error: ' + err.message;
+            filePreview.classList.add('hidden');
+            errorCard.classList.remove('hidden');
+        } finally {
+            generateBtn.disabled = false;
+            generateBtn.textContent = '⚡ Generate Report';
+        }
+    });
+</script>
+{% endblock %}

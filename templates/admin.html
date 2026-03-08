@@ -1,0 +1,109 @@
+{% extends 'base.html' %}
+{% block title %}Admin Panel — Report Automation{% endblock %}
+{% block content %}
+<div class="page-container">
+    <div class="page-header">
+        <h1 class="page-title">👤 Admin Panel</h1>
+        <p class="page-subtitle">Manage user access to Report Automation</p>
+    </div>
+
+    <!-- Add User Form -->
+    <div class="admin-section">
+        <div class="section-card">
+            <h2 class="section-title">➕ Add New User</h2>
+            <form method="POST" action="{{ url_for('admin.add_user') }}" class="add-user-form">
+                <div class="form-row">
+                    <div class="form-group flex-1">
+                        <label class="form-label" for="new_email">Email Address</label>
+                        <input type="email" id="new_email" name="email" class="form-input"
+                            placeholder="user@example.com" required>
+                    </div>
+                    <div class="form-group admin-check">
+                        <label class="form-label">Admin?</label>
+                        <label class="toggle-switch">
+                            <input type="checkbox" name="is_admin" value="on">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="form-group align-end">
+                        <button type="submit" class="btn-primary">Add User</button>
+                    </div>
+                </div>
+                <p class="form-hint">New users will receive default password: <code>Metal@#357</code> and must change it
+                    on first login.</p>
+            </form>
+        </div>
+    </div>
+
+    <!-- Users Table -->
+    <div class="admin-section">
+        <div class="section-card">
+            <h2 class="section-title">👥 User Accounts <span class="badge">{{ users|length }}</span></h2>
+            <div class="table-wrap">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Email</th>
+                            <th>Role</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in users %}
+                        <tr class="{% if user.id == current_user.id %}current-user-row{% endif %}">
+                            <td>{{ loop.index }}</td>
+                            <td class="email-cell">
+                                {{ user.email }}
+                                {% if user.id == current_user.id %}
+                                <span class="badge-you">You</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if user.is_admin %}
+                                <span class="badge-admin">Admin</span>
+                                {% else %}
+                                <span class="badge-user">User</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if user.must_change_password %}
+                                <span class="badge-pending">⚠ Must Change Password</span>
+                                {% else %}
+                                <span class="badge-ok">✓ Active</span>
+                                {% endif %}
+                            </td>
+                            <td class="actions-cell">
+                                {% if user.id != current_user.id %}
+                                <!-- Reset Password -->
+                                <form method="POST" action="{{ url_for('admin.reset_password', user_id=user.id) }}"
+                                    style="display:inline"
+                                    onsubmit="return confirm('Reset password for {{ user.email }}?')">
+                                    <button type="submit" class="btn-sm btn-warning" title="Reset Password">🔄
+                                        Reset</button>
+                                </form>
+                                <!-- Remove User -->
+                                <form method="POST" action="{{ url_for('admin.remove_user', user_id=user.id) }}"
+                                    style="display:inline"
+                                    onsubmit="return confirm('Remove {{ user.email }}? This cannot be undone.')">
+                                    <button type="submit" class="btn-sm btn-danger" title="Remove User">🗑
+                                        Remove</button>
+                                </form>
+                                {% else %}
+                                <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" class="empty-row">No users found.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Report Automation{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  {% if current_user.is_authenticated and not current_user.must_change_password %}
+  <nav class="navbar">
+    <div class="nav-brand">
+      <div class="nav-logo">📊</div>
+      <span>Report Automation</span>
+    </div>
+    <div class="nav-links">
+      <a href="{{ url_for('main_dashboard') }}" class="nav-link {% if request.endpoint == 'main_dashboard' %}active{% endif %}">
+        Dashboard
+      </a>
+      {% if current_user.is_admin %}
+      <a href="{{ url_for('admin.admin_panel') }}" class="nav-link {% if request.endpoint == 'admin.admin_panel' %}active{% endif %}">
+        Admin
+      </a>
+      {% endif %}
+    </div>
+    <div class="nav-user">
+      <span class="user-email">{{ current_user.email }}</span>
+      {% if current_user.is_admin %}<span class="badge-admin">Admin</span>{% endif %}
+      <a href="{{ url_for('auth.change_password') }}" class="btn-icon" title="Change Password">🔑</a>
+      <a href="{{ url_for('auth.logout') }}" class="btn-icon" title="Logout">🚪</a>
+    </div>
+  </nav>
+  {% endif %}
+
+  <main class="main-content">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flash-container">
+          {% for category, message in messages %}
+            <div class="flash flash-{{ category }}">
+              <span class="flash-icon">
+                {% if category == 'success' %}✅{% elif category == 'danger' %}❌{% elif category == 'warning' %}⚠️{% else %}ℹ️{% endif %}
+              </span>
+              {{ message }}
+              <button class="flash-close" onclick="this.parentElement.remove()">×</button>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+  </main>
+
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>
