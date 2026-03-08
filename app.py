@@ -100,8 +100,10 @@ def upload_file():
     )
 
 
-# ── Database seeding ──────────────────────────────────────────────────────────
-def seed_admin():
+# ── Database Initialization ───────────────────────────────────────────────────
+with app.app_context():
+    db.create_all()
+    # Check for admin
     admin = User.query.filter_by(email='admin@report.com').first()
     if not admin:
         admin = User(
@@ -116,7 +118,4 @@ def seed_admin():
 
 
 if __name__ == '__main__':
-    with app.app_context():
-        db.create_all()
-        seed_admin()
     app.run(debug=True, host='0.0.0.0', port=5000)
